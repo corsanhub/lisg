@@ -1,0 +1,2 @@
+# lisg
+Lisp for Go
