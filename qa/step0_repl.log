@@ -1,0 +1,51 @@
+make -C impls/lisg step0_repl.go
+make[1]: Entering directory '/home/axis/Development/nep/gerardocorsan/projects/mal/impls/lisg'
+make[1]: Nothing to be done for 'step0_repl.go'.
+make[1]: Leaving directory '/home/axis/Development/nep/gerardocorsan/projects/mal/impls/lisg'
+(call STEP_TEST_FILES,lisg,step0): impls/tests/step0_repl.mal
+----------------------------------------------
+Testing test^lisg^step0; step file: impls/lisg/step0_repl.go, test file: tests/step0_repl.mal
+Running: env STEP=step0_repl MAL_IMPL=js ../../runtest.py  --deferrable --optional   ../tests/step0_repl.mal -- ../lisg/run
+Started with:
+############################################
+Hello there Daj K'ptzin!
+
+Testing basic string
+TEST: 'abcABC123' -> ['',abcABC123] -> SUCCESS
+Testing string containing spaces
+TEST: 'hello mal world' -> ['',hello mal world] -> SUCCESS
+Testing string containing symbols
+TEST: '[]{}"\'* ;:()' -> ['',[]{}"'* ;:()] -> SUCCESS
+Test long string
+TEST: 'hello world abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789 (;:() []{}"\'* ;:() []{}"\'* ;:() []{}"\'*)' -> ['',hello world abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789 (;:() []{}"'* ;:() []{}"'* ;:() []{}"'*)] -> SUCCESS
+Non alphanumeric characters
+TEST: '!' -> ['',!] -> SUCCESS
+TEST: '&' -> ['',&] -> SUCCESS
+TEST: '+' -> ['',+] -> SUCCESS
+TEST: ',' -> ['',,] -> SUCCESS
+TEST: '-' -> ['',-] -> SUCCESS
+TEST: '/' -> ['',/] -> SUCCESS
+TEST: '<' -> ['',<] -> SUCCESS
+TEST: '=' -> ['',=] -> SUCCESS
+TEST: '>' -> ['',>] -> SUCCESS
+TEST: '?' -> ['',?] -> SUCCESS
+TEST: '@' -> ['',@] -> SUCCESS
+TEST: '^' -> ['',^] -> SUCCESS
+TEST: '_' -> ['',_] -> SUCCESS
+TEST: '`' -> ['',`] -> SUCCESS
+TEST: '~' -> ['',~] -> SUCCESS
+------- Optional Functionality --------------
+------- (Not needed for self-hosting) -------
+Non alphanumeric characters
+TEST: '#' -> ['',#] -> SUCCESS
+TEST: '$' -> ['',$] -> SUCCESS
+TEST: '%' -> ['',%] -> SUCCESS
+TEST: '.' -> ['',.] -> SUCCESS
+TEST: '|' -> ['',|] -> SUCCESS
+
+TEST RESULTS (for ../tests/step0_repl.mal):
+    0: soft failing tests
+    0: failing tests
+   24: passing tests
+   24: total tests
+
