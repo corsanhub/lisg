@@ -14,11 +14,13 @@ func main() {
 	//argsWithProg := os.Args
 	//argsWithoutProg := os.Args[1:]
 	//runnable := os.Args[0]
-	argSize := len(os.Args)
-	step := ""
-	if argSize > 1 {
-		step = os.Args[1]
+
+	if len(os.Args) != 2 {
+		panic("No arguments has been supplied.")
 	}
+
+	step := os.Args[1]
+	fmt.Printf("step: %s!\n", step)
 
 	name := "Daj K'ptzin"
 	fmt.Printf("Hello there %s!\n", name)

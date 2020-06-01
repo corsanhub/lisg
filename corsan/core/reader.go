@@ -2,49 +2,51 @@ package core
 
 import "fmt"
 
-type token struct {
-	position int
-	value    string
-	next     *token
+var position int
+
+func init() {
+	position = 0
 }
 
-type Feed struct {
-	length int // we'll use it later
-	start  *token
-}
-
-func (feed *Feed) Append(newtoken *token) {
-	if feed.length == 0 {
-		feed.start = newtoken
-	} else {
-		currentPost := feed.start
-		for currentPost.next != nil {
-			currentPost = currentPost.next
-		}
-		currentPost.next = newtoken
+func next() Token {
+	token := Token{
+		value: "some",
 	}
-	feed.length++
+
+	return token
 }
 
 func DoSomething() {
-	println("Doing it ...")
-
-	feed := &Feed{}
-	token1 := token{
-		position: 0,
-		value:    "Lorem ipsum",
+	println("Doing something ...")
+	token1 := &Token{
+		value: "token 1",
 	}
-	feed.Append(&token1)
-
-	fmt.Printf("Length: %v\n", feed.length)
-	fmt.Printf("First: %v\n", feed.start)
-
-	token2 := token{
-		value: "Dolor sit amet",
+	token2 := Token{
+		value: "token 2",
+		next:  nil,
 	}
-	feed.Append(&token2)
+	token3 := Token{
+		value: "token 3",
+		next:  nil,
+	}
 
-	fmt.Printf("Length: %v\n", feed.length)
-	fmt.Printf("First: %v\n", feed.start)
-	fmt.Printf("Second: %v\n", feed.start.next)
+	feed1 := &Feed{
+		length: 0,
+		start:  token1,
+	}
+	feed2 := Feed{
+		length: 0,
+		start:  &token2,
+	}
+	token1.next = &token2
+	token2.next = &token3
+
+	fmt.Printf("feed 1: %+v\n", feed1)
+	fmt.Printf("feed 2: %+v\n", feed2)
+
+	fmt.Printf("Start 1: %+v\n", feed1.start)
+	fmt.Printf("Start 2: %+v\n", feed2.start)
+
+	fmt.Printf("Next 1: %+v\n", feed1.start.next)
+	fmt.Printf("Next 2: %+v\n", feed2.start.next)
 }
