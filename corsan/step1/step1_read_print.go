@@ -4,18 +4,20 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+
+	"corsanhub.com/lisg/corsan/core"
 )
 
-func READ(value string) string {
-	return value
+func READ(value string) core.MalType {
+	return nil
 }
 
-func EVAL(value string) string {
-	return value
+func EVAL(value core.MalType) core.MalType {
+	return nil
 }
 
-func PRINT(value string) string {
-	return value
+func PRINT(value core.MalType) string {
+	return "value"
 }
 
 func rep(text string) string {

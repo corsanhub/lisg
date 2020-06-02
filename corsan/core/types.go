@@ -1,37 +1,31 @@
 package core
 
 type MalType interface {
-	doSome() string
 }
 
 type MalObject struct {
 	MalType
-	//str string
+	value *string
 }
 
 type MalInteger struct {
-	MalObject
-	value int
+	MalType
+	value int64
 }
 
 type MalFloat struct {
-	MalObject
-	value float32
-}
-
-type MalDouble struct {
-	MalObject
+	MalType
 	value float64
 }
 
 type MalString struct {
-	MalObject
-	value string
+	MalType
+	value *string
 }
 
 type MalList struct {
-	MalObject
-	elements []*MalObject
+	MalType
+	elements []*MalType
 }
 
 // func (malObject MalObject) doSome() string {
