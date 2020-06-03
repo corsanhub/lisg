@@ -1,31 +1,48 @@
 package core
 
+import "fmt"
+
 type MalType interface {
 }
 
 type MalObject struct {
 	MalType
-	value *string
+	v string
+}
+
+type MalError struct {
+	MalType
+	f string
+	e string
+}
+
+func (err MalError) Error() string {
+	return fmt.Sprintf("MalError thrown in function {%s}: %s", err.f, err.e)
+}
+
+type MalSymbol struct {
+	MalType
+	v string
 }
 
 type MalInteger struct {
 	MalType
-	value int64
+	v int64
 }
 
 type MalFloat struct {
 	MalType
-	value float64
+	v float64
 }
 
 type MalString struct {
 	MalType
-	value *string
+	v *string
 }
 
 type MalList struct {
 	MalType
-	elements []*MalType
+	v []MalType
 }
 
 // func (malObject MalObject) doSome() string {

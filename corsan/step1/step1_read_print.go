@@ -9,18 +9,18 @@ import (
 )
 
 func READ(value string) core.MalType {
-	return nil
+	return core.ReadStr(value)
 }
 
 func EVAL(value core.MalType) core.MalType {
-	return nil
+	return value
 }
 
-func PRINT(value core.MalType) string {
-	return "value"
+func PRINT(value core.MalType) core.MalType {
+	return value
 }
 
-func rep(text string) string {
+func rep(text string) core.MalType {
 	readResult := READ(text)
 	evalResult := EVAL(readResult)
 	printResult := PRINT(evalResult)
@@ -31,10 +31,10 @@ func rep(text string) string {
 //Step1ReadPrint - Executes Step 1
 func Step1ReadPrint() {
 	for {
-		reader := bufio.NewReader(os.Stdin)
+		rdr := bufio.NewReader(os.Stdin)
 		fmt.Print("user> ")
-		text, _ := reader.ReadString('\n')
+		text, _ := rdr.ReadString('\n')
 		textx := rep(text)
-		fmt.Printf("%s", textx)
+		fmt.Printf("%-v\n", textx)
 	}
 }

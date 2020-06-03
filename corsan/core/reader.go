@@ -3,23 +3,24 @@ package core
 import (
 	"fmt"
 	"regexp"
+	"strconv"
+
+	"corsanhub.com/lisg/corsan/util"
 )
 
 var tokenRegexStr = "[\\s,]*(~@|[\\[\\]{}()'`~^@]|\"(?:\\\\.|[^\\\\\"])*\"?|;.*|[^\\s\\[\\]{}('\"`,;)]*)"
 var intRegexStr = `^[0-9]+$`
 var floatRegexStr = `^\d*[.]\d+$`
 
-var stringRegex = regexp.MustCompile(tokenRegexStr)
-var intRegex = regexp.MustCompile(intRegexStr)
-var floatRegex = regexp.MustCompile(floatRegexStr)
+var StringRegex = regexp.MustCompile(tokenRegexStr)
+var IntRegex = regexp.MustCompile(intRegexStr)
+var FloatRegex = regexp.MustCompile(floatRegexStr)
 
 func Tokenize(str string) []string {
-	tokens := make([]string, 0, 1)
-	for _, group := range stringRegex.FindAllStringSubmatch(str, -1) {
-		if (group[1] == "") || (group[1][0] == ';') {
-			continue
-		}
-		tokens = append(tokens, group[1])
+	matches := StringRegex.FindAllStringSubmatch(str, -1)
+	tokens := make([]string, 0)
+	for _, g := range matches {
+		tokens = append(tokens, g[1])
 	}
 	return tokens
 }
@@ -29,118 +30,125 @@ func Tokenize(str string) []string {
 // 	// fmt.Println(ss)
 // }
 
-// type Reader struct {
-// 	position int
-// 	tokens   []string
-// }
+func SomeError(fnName, str string) *MalError {
+	return &MalError{f: fnName, e: str}
+}
 
-// func (reader *Reader) next() string {
-// 	currentToken := reader.tokens[reader.position]
-// 	reader.position++
-// 	return currentToken
-// }
+type Reader struct {
+	position int
+	tokens   []string
+}
 
-// func (reader *Reader) peek() string {
-// 	currentToken := reader.tokens[reader.position]
-// 	return currentToken
-// }
+const NILS = ""
 
-// func read_atom(reader *Reader) MalType {
-// 	token := reader.next()
-// 	// printFnStart("read_atom", &reader, reader.token)
+func (reader *Reader) next() (string, error) {
+	//fmt.Printf("position: %d, len: %d\n\n", reader.position, len(reader.tokens))
+	if reader.position < len(reader.tokens) {
+		currentToken := reader.tokens[reader.position]
+		reader.position++
+		return currentToken, nil
+	} else {
+		fn := util.GetFrame(0).Function
+		errStr := "Changos"
+		err := SomeError(fn, errStr)
+		return NILS, err
+	}
 
-// 	intMatches := intRegex.Match([]byte(*token))
-// 	floatMatches := floatRegex.Match([]byte(*token))
+}
 
-// 	if intMatches {
-// 		fmt.Println("intMatches:", intMatches)
-// 		intValue, _ := strconv.ParseInt(*token, 10, 64)
-// 		return MalInteger{value: intValue}
-// 	} else if floatMatches {
-// 		fmt.Println("intMatches:", intMatches)
-// 		floatValue, _ := strconv.ParseFloat(*token, 10)
-// 		return &MalFloat{value: floatValue}
-// 	} else {
-// 		if token != nil {
-// 			return &MalObject{value: token}
-// 		} else {
-// 			return nil
-// 		}
-// 	}
-// }
+func (reader *Reader) peek() string {
+	currentToken := reader.tokens[reader.position]
+	return currentToken
+}
 
-// func read_list(reader *Reader) MalType {
-// 	token := reader.next()
+func (reader *Reader) readAtom() MalType {
+	token, _ := reader.next()
+	//fmt.Println("atom token:", token)
 
-// 	printFnStart("read_list", &reader, *token)
+	// printFnStart("read_atom", &reader, reader.token)
 
-// 	elements := []*MalType{}
-// 	for {
-// 		current := reader.next()
-// 		var obj = &MalObject{}
-// 		if current.token[0] == ')' {
-// 			break
-// 		} else {
-// 			obj = read_atom(current)
-// 		}
+	intMatches := IntRegex.Match([]byte(token))
+	floatMatches := FloatRegex.Match([]byte(token))
 
-// 		elements = append(elements, obj)
-// 	}
+	if intMatches {
+		//fmt.Println("intMatches:", intMatches)
+		intValue, _ := strconv.ParseInt(token, 10, 64)
+		return MalInteger{v: intValue}
+	} else if floatMatches {
+		//fmt.Println("floatMatches:", floatMatches)
+		floatValue, _ := strconv.ParseFloat(token, 10)
+		return MalFloat{v: floatValue}
+	} else {
+		if &token != nil {
+			return MalSymbol{v: token}
+		} else {
+			return nil
+		}
+	}
+}
 
-// 	list := &MalList{
-// 		elements: elements,
-// 	}
-// 	return &list.MalObject
-// }
+func (reader *Reader) readList() MalType {
+	//printFnStart("read_list", &reader, *token)
 
-// func read_form(reader *Reader) *MalObject {
-// 	token := reader.peek()
-// 	printFnStart("read_form", &reader, reader.token)
+	list := MalList{}
+	for {
+		current, err := reader.next()
+		//fmt.Println("list token:", current)
+		if err != nil {
+			//fmt.Println("An error has ocurred --> ", err.Error())
+			break
+		}
 
-// 	//fmt.Println(fmt.Sprintf("current reader: [%+v]", &current))
+		letter := current[0]
+		switch letter {
+		case ')':
+			break
+		default:
+			//fmt.Println("current:", current)
 
-// 	var obj = &MalObject{}
-// 	switch token[0] {
-// 	case '(':
-// 		obj = reader.read_list()
-// 	default:
-// 		obj = reader.read_atom()
-// 	}
-// 	return obj
-// }
+			atom := reader.readAtom()
+			//fmt.Println(fmt.Printf("Apendding atom to list: %+v\n", atom))
+			list.v = append(list.v, atom)
+		}
+	}
 
-// // func ppstr(items []string) string {
-// // 	var buffer bytes.Buffer
-// // 	for _, item := range items {
-// // 		buffer.WriteString("°" + item + "° ")
-// // 	}
-// // 	return buffer.String()
-// // }
+	return list
+}
 
-// func Read_str(tokenStr string) *Reader {
-// 	reader := &Reader{}
-// 	//printFnStart("read_str ", &reader, tokenStr)
-// 	tokens := tokenize(tokenStr)
-// 	reader.tokens = tokens
-// 	fmt.Println("read_str:", reader.token)
-// 	reader.position = 0
+func (reader *Reader) readForm() MalType {
+	token := reader.peek()
+	//fmt.Println("form token:", token)
+	//printFnStart("read_form", &reader, reader.token)
 
-// 	readers := []*Reader{}
-// 	if len(tokens) > 1 {
-// 		for _, token := range tokens {
-// 			xtoken := strings.TrimSpace(token)
-// 			newReader := Read_str(xtoken)
+	//fmt.Println(fmt.Sprintf("current reader: [%+v]", &current))
 
-// 			readers = append(readers, newReader)
-// 		}
-// 		reader.readers = readers
+	switch token[0] {
+	case '(':
+		list := reader.readList()
+		return list
+	default:
+		atom := reader.readAtom()
+		fmt.Println("atom:", atom)
+		return atom
+	}
+}
 
-// 		reader.read_form()
-// 	}
+func CreateReader(tokenStr string) *Reader {
+	reader := &Reader{}
+	//printFnStart("read_str ", &reader, tokenStr)
+	tokens := Tokenize(tokenStr)
+	//fmt.Println("===== tokens:", tokens)
+	//fmt.Println("===== tokenx:", util.ArrayToString(tokens, "\""))
+	reader.tokens = tokens
+	reader.position = 0
+	return reader
+}
 
-// 	fmt.Println("reader:", reader.token)
-// 	return reader
-// }
+func ReadStr(str string) MalType {
+	reader := CreateReader(str)
+	form := reader.readForm()
+	return form
+}
 
 func TestReader() {
 	//fmt.Printf("Position: %d, Token: %+v\n", currentPosition, currentToken)
@@ -151,16 +159,19 @@ func TestReader() {
 
 	str := "(let [y (some 3.4)\n  (print (+ 3 4))])\n(println \"Hello!\")"
 	str = "(def x (inc 1))"
+	str = "(inc 1)"
+	str = "(4)"
 	fmt.Println("str: ", str)
 
-	// reader := Read_str(str)
+	reader := CreateReader(str)
+	form := reader.readForm()
 
-	// fmt.Println(": MAIN READER :", reader)
+	fmt.Println("reader :", reader)
+	fmt.Println("form   :", form)
 
 	// for _, token := range tokens {
 	// 	fmt.Println("token: ", token)
 	// }
-
 	println("---------------------------------------------------------------")
 
 }
