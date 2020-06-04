@@ -5,8 +5,11 @@ import (
 	"regexp"
 	"strconv"
 
+	"corsanhub.com/lisg/corsan/logging"
 	"corsanhub.com/lisg/corsan/util"
 )
+
+var log = logging.Logger{Name: "core.reader"}
 
 var tokenRegexStr = "[\\s,]*(~@|[\\[\\]{}()'`~^@]|\"(?:\\\\.|[^\\\\\"])*\"?|;.*|[^\\s\\[\\]{}('\"`,;)]*)"
 var intRegexStr = `^[0-9]+$`
@@ -25,112 +28,138 @@ func Tokenize(str string) []string {
 	return tokens
 }
 
-// func printFnStart(fn string, reader **Reader, value string) {
-// 	// ss := fmt.Sprintf("[%+v] %+s              => %+s <=", reader, fn, value)
-// 	// fmt.Println(ss)
-// }
-
 func SomeError(fnName, str string) *MalError {
 	return &MalError{f: fnName, e: str}
 }
 
 type Reader struct {
 	position int
+	counter  int
 	tokens   []string
 }
 
 const NILS = ""
 
 func (reader *Reader) next() (string, error) {
-	//fmt.Printf("position: %d, len: %d\n\n", reader.position, len(reader.tokens))
 	if reader.position < len(reader.tokens) {
 		currentToken := reader.tokens[reader.position]
+		log.Debug(util.Xs("reader.position: %v", reader.position))
+		log.Debug(util.Xs("currentToken   : %v", currentToken))
 		reader.position++
 		return currentToken, nil
 	} else {
-		fn := util.GetFrame(0).Function
-		errStr := "Changos"
+		fn := util.TraceStr(0)
+		errStr := util.Xs("Out of bounds error %d", reader.position)
 		err := SomeError(fn, errStr)
 		return NILS, err
 	}
-
 }
 
-func (reader *Reader) peek() string {
-	currentToken := reader.tokens[reader.position]
-	return currentToken
+func (reader *Reader) peek() (string, error) {
+	if reader.position < len(reader.tokens) {
+		currentToken := reader.tokens[reader.position]
+		log.Debug(util.Xs("reader.position: %v", reader.position))
+		log.Debug(util.Xs("currentToken   : %v", currentToken))
+		return currentToken, nil
+	} else {
+		fn := util.TraceStr(0)
+		errStr := util.Xs("Out of bounds error %d", reader.position)
+		err := SomeError(fn, errStr)
+		return NILS, err
+	}
 }
 
 func (reader *Reader) readAtom() MalType {
-	token, _ := reader.next()
-	//fmt.Println("atom token:", token)
-
-	// printFnStart("read_atom", &reader, reader.token)
+	token, _ := reader.peek()
+	log.Debug(util.Xs("---------------- atom token: %#v", token))
 
 	intMatches := IntRegex.Match([]byte(token))
 	floatMatches := FloatRegex.Match([]byte(token))
 
 	if intMatches {
-		//fmt.Println("intMatches:", intMatches)
+		log.Debug(util.Xs("intMatches: %#v", intMatches))
 		intValue, _ := strconv.ParseInt(token, 10, 64)
 		return MalInteger{v: intValue}
 	} else if floatMatches {
-		//fmt.Println("floatMatches:", floatMatches)
+		log.Debug(util.Xs("floatMatches: %#v", floatMatches))
 		floatValue, _ := strconv.ParseFloat(token, 10)
 		return MalFloat{v: floatValue}
 	} else {
-		if &token != nil {
-			return MalSymbol{v: token}
-		} else {
-			return nil
-		}
+		symbol := MalSymbol{v: token}
+		log.Debug("symbol :" + symbol.v)
+		return symbol
 	}
 }
 
 func (reader *Reader) readList() MalType {
-	//printFnStart("read_list", &reader, *token)
-
 	list := MalList{}
 	for {
-		current, err := reader.next()
-		//fmt.Println("list token:", current)
-		if err != nil {
-			//fmt.Println("An error has ocurred --> ", err.Error())
+		token, err := reader.next()
+		log.Debug(util.Xs("---------------- elem token: %#v", token))
+
+		if &token == nil || token == "" || err != nil {
+			if err != nil {
+				//log.Warn(err.Error())
+			}
 			break
 		}
 
-		letter := current[0]
+		log.Debug("     current : [" + token + "]")
+		letter := token[0]
+
+		log.Debug(util.Xs("on (++) counter: %d", reader.counter))
+		if letter == '(' {
+			reader.counter++
+		}
+
 		switch letter {
 		case ')':
+			log.Debug(util.Xs("on (--) counter: %d", reader.counter))
+			if letter == '(' {
+				reader.counter--
+			}
 			break
 		default:
-			//fmt.Println("current:", current)
-
-			atom := reader.readAtom()
-			//fmt.Println(fmt.Printf("Apendding atom to list: %+v\n", atom))
-			list.v = append(list.v, atom)
+			element := reader.readForm()
+			if element != nil {
+				log.Debug(util.Xs("ELEMENT: %-v", element))
+				list.v = append(list.v, element)
+			}
 		}
 	}
 
+	if reader.counter != 0 {
+		return MalObject{v: "unbalanced"}
+	}
+	log.Debug("LIST:" + list.PrintStr())
 	return list
 }
 
 func (reader *Reader) readForm() MalType {
-	token := reader.peek()
-	//fmt.Println("form token:", token)
-	//printFnStart("read_form", &reader, reader.token)
+	token, err := reader.peek()
+	log.Debug(util.Xs("--------------- form token: %#v", token))
 
-	//fmt.Println(fmt.Sprintf("current reader: [%+v]", &current))
-
-	switch token[0] {
-	case '(':
-		list := reader.readList()
-		return list
-	default:
-		atom := reader.readAtom()
-		fmt.Println("atom:", atom)
-		return atom
+	if ")" != token {
+		if &token == nil || token == "" || err != nil {
+			if err != nil {
+				//log.Warn(err.Error())
+			}
+			return nil
+		} else {
+			switch token[0] {
+			case '(':
+				reader.counter++
+				list := reader.readList()
+				log.Debug(util.Xs("LIST: %v", list))
+				return list
+			default:
+				atom := reader.readAtom()
+				log.Debug(util.Xs("ATOM: %v", atom))
+				return atom
+			}
+		}
 	}
+	return nil
 }
 
 func CreateReader(tokenStr string) *Reader {
@@ -141,6 +170,7 @@ func CreateReader(tokenStr string) *Reader {
 	//fmt.Println("===== tokenx:", util.ArrayToString(tokens, "\""))
 	reader.tokens = tokens
 	reader.position = 0
+	reader.counter = 0
 	return reader
 }
 

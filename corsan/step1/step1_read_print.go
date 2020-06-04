@@ -16,11 +16,11 @@ func EVAL(value core.MalType) core.MalType {
 	return value
 }
 
-func PRINT(value core.MalType) core.MalType {
-	return value
+func PRINT(value core.MalType) string {
+	return core.PrintStr(value)
 }
 
-func rep(text string) core.MalType {
+func rep(text string) string {
 	readResult := READ(text)
 	evalResult := EVAL(readResult)
 	printResult := PRINT(evalResult)

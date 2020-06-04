@@ -1,8 +1,13 @@
 package core
 
-import "fmt"
+import (
+	"bytes"
+	"fmt"
+)
 
 type MalType interface {
+	PrintStr() string
+	Value()
 }
 
 type MalObject struct {
@@ -14,10 +19,6 @@ type MalError struct {
 	MalType
 	f string
 	e string
-}
-
-func (err MalError) Error() string {
-	return fmt.Sprintf("MalError thrown in function {%s}: %s", err.f, err.e)
 }
 
 type MalSymbol struct {
@@ -37,12 +38,51 @@ type MalFloat struct {
 
 type MalString struct {
 	MalType
-	v *string
+	v string
 }
 
 type MalList struct {
 	MalType
 	v []MalType
+}
+
+func (err MalError) Error() string {
+	return fmt.Sprintf("MalError thrown in function {%s}: %s", err.f, err.e)
+}
+
+func (mal MalObject) PrintStr() string {
+	return fmt.Sprintf("%+v", mal.v)
+}
+
+func (mal MalSymbol) PrintStr() string {
+	return fmt.Sprintf("%+v", mal.v)
+}
+
+func (mal MalInteger) PrintStr() string {
+	return fmt.Sprintf("%+v", mal.v)
+}
+
+func (mal MalFloat) PrintStr() string {
+	return fmt.Sprintf("%+v", mal.v)
+}
+
+func (mal MalString) PrintStr() string {
+	return fmt.Sprintf("%+v", mal.v)
+}
+
+func (mal MalList) PrintStr() string {
+	var buffer bytes.Buffer
+	buffer.WriteString("(")
+	for i, item := range mal.v {
+		suffix := " "
+		log.Debug(fmt.Sprintf("len(mal.v): %+v, i: %d", len(mal.v), i))
+		if i == (len(mal.v) - 1) {
+			suffix = ""
+		}
+		buffer.WriteString(item.PrintStr() + suffix)
+	}
+	buffer.WriteString(")")
+	return buffer.String()
 }
 
 // func (malObject MalObject) doSome() string {
