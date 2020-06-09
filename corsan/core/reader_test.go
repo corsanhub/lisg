@@ -25,7 +25,7 @@ func getErrorStr(input string, result string, expected string) string {
 }
 
 func probeTokenize(t *testing.T, input string, expected string) {
-	tokens := XTokenize(input)
+	tokens := Tokenize(input)
 	result := util.PointersToString(tokens, "")
 
 	if result != expected {

@@ -48,6 +48,12 @@ type MalList struct {
 	id *string
 }
 
+type MalVector struct {
+	MalType
+	v  []MalType
+	id *string
+}
+
 func (err MalError) Error() string {
 	return fmt.Sprintf("MalError thrown in function {%s}: %s", err.f, err.e)
 }
@@ -86,17 +92,16 @@ func (mal MalList) PrintStr() string {
 	return buffer.String()
 }
 
-// func (malObject MalObject) doSome() string {
-// 	return malObject.str
-// }
-
-// func TestTypes() {
-// 	fmt.Println("Testing types ...")
-
-// 	ss := &MalString{MalObject{}, "Some value"}
-// 	ss.str = "Daj K'ptin"
-
-// 	fmt.Println("str : ", ss.str)
-// 	fmt.Println("some: ", ss.doSome())
-
-// }
+func (mal MalVector) PrintStr() string {
+	var buffer bytes.Buffer
+	buffer.WriteString("[")
+	for i, item := range mal.v {
+		suffix := " "
+		if i == (len(mal.v) - 1) {
+			suffix = ""
+		}
+		buffer.WriteString(item.PrintStr() + suffix)
+	}
+	buffer.WriteString("]")
+	return buffer.String()
+}

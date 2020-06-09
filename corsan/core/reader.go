@@ -12,11 +12,11 @@ import (
 
 var log = logging.Logger{Name: "core.reader"}
 
-func SomeError(fnName, str string) *MalError {
+func NewError(fnName, str string) *MalError {
 	return &MalError{f: fnName, e: str}
 }
 
-type XReader struct {
+type Reader struct {
 	position int
 	counter  int
 	tokens   []*string
@@ -25,7 +25,7 @@ type XReader struct {
 var XTokenRegexStr = "[\\s,]*(~@|[\\[\\]{}()'`~^@]|\"(?:\\\\.|[^\\\\\"])*\"?|;.*|[^\\s\\[\\]{}('\"`,;)]*)"
 var XTokenRegex = regexp.MustCompile(XTokenRegexStr)
 
-func (reader *XReader) XNext() (*string, error) {
+func (reader *Reader) next() (*string, error) {
 	reader.position++
 	if reader.position < len(reader.tokens) {
 		token := reader.tokens[reader.position]
@@ -34,12 +34,12 @@ func (reader *XReader) XNext() (*string, error) {
 	} else {
 		fn := util.TraceStr(0)
 		errStr := util.Xs("Out of bounds error %d", reader.position)
-		err := SomeError(fn, errStr)
+		err := NewError(fn, errStr)
 		return nil, err
 	}
 }
 
-func (reader *XReader) XPeek() (*string, error) {
+func (reader *Reader) peek() (*string, error) {
 	if reader.position < len(reader.tokens) {
 		token := reader.tokens[reader.position]
 		log.Debug(util.Xs("##---------------- 🔷peek: %#v, id: %v, position: %d", *token, token, reader.position))
@@ -47,7 +47,7 @@ func (reader *XReader) XPeek() (*string, error) {
 	} else {
 		fn := util.TraceStr(0)
 		errStr := util.Xs("Out of bounds error %d", reader.position)
-		err := SomeError(fn, errStr)
+		err := NewError(fn, errStr)
 		return nil, err
 	}
 }
@@ -58,19 +58,19 @@ func waitForEnterKey(value string) {
 	reader.ReadString('\n')
 }
 
-func (reader *XReader) xReadAtom() MalType {
-	token, _ := reader.XPeek()
+func (reader *Reader) readAtom() MalType {
+	token, _ := reader.peek()
 	atom := MalObject{v: *token, id: util.RandString(8)}
 	log.Debug(util.Xs("##-------------   New atom : %#v", atom))
 	return atom
 }
 
-func (reader *XReader) xReadList(id *string) MalType {
+func (reader *Reader) readList(id *string) MalType {
 	list := MalList{id: id}
 	log.Debug(util.Xs("##=============   New list.  id: %v, %#v", id, "list"))
 
 	for {
-		token, err := reader.XNext()
+		token, err := reader.next()
 
 		if token == nil || *token == "" || err != nil {
 			if err != nil {
@@ -87,7 +87,7 @@ func (reader *XReader) xReadList(id *string) MalType {
 			log.Debug(util.Xs("##=============   Ret list.  id: %v, %#v", id, "list"))
 			return list
 		default:
-			form := reader.xReadForm()
+			form := reader.readForm()
 			list.v = append(list.v, form)
 			//waitForEnterKey("list-form :")
 		}
@@ -95,26 +95,65 @@ func (reader *XReader) xReadList(id *string) MalType {
 	return nil
 }
 
-func (reader *XReader) xReadForm() MalType {
-	token, _ := reader.XPeek()
+func (reader *Reader) readVector(id *string) MalType {
+	vector := MalVector{id: id}
+	log.Debug(util.Xs("##=============   New vect.  id: %v, %#v", id, "list"))
+
+	for {
+		token, err := reader.next()
+
+		if token == nil || *token == "" || err != nil {
+			if err != nil {
+				//log.Warn(err.Error())
+			}
+			log.Debug("Breaking 📰 ...")
+			break
+		}
+
+		switch (*token)[0] {
+		case ']':
+			reader.counter--
+			//waitForEnterKeywaitForEnterKey("list-retr :")
+			log.Debug(util.Xs("##=============   Ret vect.  id: %v, %#v", id, "list"))
+			return vector
+		default:
+			form := reader.readForm()
+			vector.v = append(vector.v, form)
+			//waitForEnterKey("list-form :")
+		}
+	}
+	return nil
+}
+
+func (reader *Reader) readForm() MalType {
+	token, _ := reader.peek()
 	switch (*token)[0] {
 	case '(':
 		reader.counter++
-		list := reader.xReadList(token)
+		list := reader.readList(token)
+		//log.Debug(util.Xs("##-------------Return list : %#v", *&list))
+		return list
+	case '[':
+		reader.counter++
+		list := reader.readVector(token)
 		//log.Debug(util.Xs("##-------------Return list : %#v", *&list))
 		return list
 	case ')':
 		reader.counter--
 		log.Debug("It's the end of a list.")
 		return nil
+	case ']':
+		reader.counter--
+		log.Debug("It's the end of a vector.")
+		return nil
 	default:
-		atom := reader.xReadAtom()
+		atom := reader.readAtom()
 		log.Debug("It's an atom.")
 		return atom
 	}
 }
 
-func XTokenize(str string) []*string {
+func Tokenize(str string) []*string {
 	matches := XTokenRegex.FindAllStringSubmatch(str, -1)
 	tokens := make([]*string, 0)
 	for _, g := range matches {
@@ -123,17 +162,17 @@ func XTokenize(str string) []*string {
 	return tokens
 }
 
-func XCreateReader(str string) *XReader {
-	tokens := XTokenize(str)
+func CreateReader(str string) *Reader {
+	tokens := Tokenize(str)
 	log.Debug(util.Xs("tokens: %s\n", util.PointersToString(tokens, "'")))
-	reader := &XReader{tokens: tokens}
+	reader := &Reader{tokens: tokens}
 	return reader
 }
 
-func XReadStr(str string) MalType {
+func ReadStr(str string) MalType {
 	if &str != nil {
-		reader := XCreateReader(str)
-		form := reader.xReadForm()
+		reader := CreateReader(str)
+		form := reader.readForm()
 
 		if reader.counter != 0 {
 			return MalObject{v: "unbalanced"}
@@ -150,8 +189,8 @@ func TestXReader() {
 
 	//str = "(a b)"
 	str := "(()())"
-	reader := XCreateReader(str)
-	form := reader.xReadForm()
+	reader := CreateReader(str)
+	form := reader.readForm()
 	fmt.Printf("form: %#v\n", form)
 
 	println("------------------------------------------------------------------------------------------------------------------------------")

@@ -13,7 +13,7 @@ import (
 var log = logging.Logger{Name: "core.reader"}
 
 func READ(value string) core.MalType {
-	readValue := core.XReadStr(value)
+	readValue := core.ReadStr(value)
 	log.Debug(util.Xs("readValue  : %v", readValue))
 	return readValue
 }
