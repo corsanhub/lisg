@@ -7,12 +7,13 @@ import (
 
 type MalType interface {
 	PrintStr() string
-	Value()
+	GetId()
 }
 
 type MalObject struct {
 	MalType
-	v string
+	v  string
+	id string
 }
 
 type MalError struct {
@@ -43,7 +44,8 @@ type MalString struct {
 
 type MalList struct {
 	MalType
-	v []MalType
+	v  []MalType
+	id *string
 }
 
 func (err MalError) Error() string {
@@ -75,7 +77,6 @@ func (mal MalList) PrintStr() string {
 	buffer.WriteString("(")
 	for i, item := range mal.v {
 		suffix := " "
-		log.Debug(fmt.Sprintf("len(mal.v): %+v, i: %d", len(mal.v), i))
 		if i == (len(mal.v) - 1) {
 			suffix = ""
 		}

@@ -6,26 +6,31 @@ import (
 	"os"
 
 	"corsanhub.com/lisg/corsan/core"
+	"corsanhub.com/lisg/corsan/logging"
+	"corsanhub.com/lisg/corsan/util"
 )
 
+var log = logging.Logger{Name: "core.reader"}
+
 func READ(value string) core.MalType {
-	return core.ReadStr(value)
+	readValue := core.XReadStr(value)
+	log.Debug(util.Xs("readValue  : %v", readValue))
+	return readValue
 }
 
 func EVAL(value core.MalType) core.MalType {
+	log.Debug(util.Xs("evalValue  : %v", value))
 	return value
 }
 
 func PRINT(value core.MalType) string {
-	return core.PrintStr(value)
+	printValue := core.PrintStr(value)
+	log.Debug(util.Xs("printValue : %v", printValue))
+	return printValue
 }
 
-func rep(text string) string {
-	readResult := READ(text)
-	evalResult := EVAL(readResult)
-	printResult := PRINT(evalResult)
-
-	return printResult
+func REP(str string) string {
+	return PRINT(EVAL(READ(str)))
 }
 
 //Step1ReadPrint - Executes Step 1
@@ -34,7 +39,7 @@ func Step1ReadPrint() {
 		rdr := bufio.NewReader(os.Stdin)
 		fmt.Print("user> ")
 		text, _ := rdr.ReadString('\n')
-		textx := rep(text)
+		textx := REP(text)
 		fmt.Printf("%-v\n", textx)
 	}
 }

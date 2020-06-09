@@ -31,7 +31,8 @@ func main() {
 	} else if strings.HasPrefix(step, "step1") {
 		step1.Step1ReadPrint()
 	} else {
-		core.TestReader()
+		//core.TestReader()
+		core.TestXReader()
 	}
 
 	println("That's all FOLKS!!")

@@ -1,9 +1,10 @@
 package core
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 	"regexp"
-	"strconv"
 
 	"corsanhub.com/lisg/corsan/logging"
 	"corsanhub.com/lisg/corsan/util"
@@ -11,197 +12,148 @@ import (
 
 var log = logging.Logger{Name: "core.reader"}
 
-var tokenRegexStr = "[\\s,]*(~@|[\\[\\]{}()'`~^@]|\"(?:\\\\.|[^\\\\\"])*\"?|;.*|[^\\s\\[\\]{}('\"`,;)]*)"
-var intRegexStr = `^[0-9]+$`
-var floatRegexStr = `^\d*[.]\d+$`
-
-var StringRegex = regexp.MustCompile(tokenRegexStr)
-var IntRegex = regexp.MustCompile(intRegexStr)
-var FloatRegex = regexp.MustCompile(floatRegexStr)
-
-func Tokenize(str string) []string {
-	matches := StringRegex.FindAllStringSubmatch(str, -1)
-	tokens := make([]string, 0)
-	for _, g := range matches {
-		tokens = append(tokens, g[1])
-	}
-	return tokens
-}
-
 func SomeError(fnName, str string) *MalError {
 	return &MalError{f: fnName, e: str}
 }
 
-type Reader struct {
+type XReader struct {
 	position int
 	counter  int
-	tokens   []string
+	tokens   []*string
 }
 
-const NILS = ""
+var XTokenRegexStr = "[\\s,]*(~@|[\\[\\]{}()'`~^@]|\"(?:\\\\.|[^\\\\\"])*\"?|;.*|[^\\s\\[\\]{}('\"`,;)]*)"
+var XTokenRegex = regexp.MustCompile(XTokenRegexStr)
 
-func (reader *Reader) next() (string, error) {
+func (reader *XReader) XNext() (*string, error) {
+	reader.position++
 	if reader.position < len(reader.tokens) {
-		currentToken := reader.tokens[reader.position]
-		log.Debug(util.Xs("reader.position: %v", reader.position))
-		log.Debug(util.Xs("currentToken   : %v", currentToken))
-		reader.position++
-		return currentToken, nil
+		token := reader.tokens[reader.position]
+		log.Debug(util.Xs("##---------------- 🔜next: %#v, id: %v, position: %d", *token, token, reader.position))
+		return token, nil
 	} else {
 		fn := util.TraceStr(0)
 		errStr := util.Xs("Out of bounds error %d", reader.position)
 		err := SomeError(fn, errStr)
-		return NILS, err
+		return nil, err
 	}
 }
 
-func (reader *Reader) peek() (string, error) {
+func (reader *XReader) XPeek() (*string, error) {
 	if reader.position < len(reader.tokens) {
-		currentToken := reader.tokens[reader.position]
-		log.Debug(util.Xs("reader.position: %v", reader.position))
-		log.Debug(util.Xs("currentToken   : %v", currentToken))
-		return currentToken, nil
+		token := reader.tokens[reader.position]
+		log.Debug(util.Xs("##---------------- 🔷peek: %#v, id: %v, position: %d", *token, token, reader.position))
+		return token, nil
 	} else {
 		fn := util.TraceStr(0)
 		errStr := util.Xs("Out of bounds error %d", reader.position)
 		err := SomeError(fn, errStr)
-		return NILS, err
+		return nil, err
 	}
 }
 
-func (reader *Reader) readAtom() MalType {
-	token, _ := reader.peek()
-	log.Debug(util.Xs("---------------- atom token: %#v", token))
-
-	intMatches := IntRegex.Match([]byte(token))
-	floatMatches := FloatRegex.Match([]byte(token))
-
-	if intMatches {
-		log.Debug(util.Xs("intMatches: %#v", intMatches))
-		intValue, _ := strconv.ParseInt(token, 10, 64)
-		return MalInteger{v: intValue}
-	} else if floatMatches {
-		log.Debug(util.Xs("floatMatches: %#v", floatMatches))
-		floatValue, _ := strconv.ParseFloat(token, 10)
-		return MalFloat{v: floatValue}
-	} else {
-		symbol := MalSymbol{v: token}
-		log.Debug("symbol :" + symbol.v)
-		return symbol
-	}
+func waitForEnterKey(value string) {
+	fmt.Printf("%s<Enter>", value)
+	reader := bufio.NewReader(os.Stdin)
+	reader.ReadString('\n')
 }
 
-func (reader *Reader) readList() MalType {
-	list := MalList{}
+func (reader *XReader) xReadAtom() MalType {
+	token, _ := reader.XPeek()
+	atom := MalObject{v: *token, id: util.RandString(8)}
+	log.Debug(util.Xs("##-------------   New atom : %#v", atom))
+	return atom
+}
+
+func (reader *XReader) xReadList(id *string) MalType {
+	list := MalList{id: id}
+	log.Debug(util.Xs("##=============   New list.  id: %v, %#v", id, "list"))
+
 	for {
-		token, err := reader.next()
-		log.Debug(util.Xs("---------------- elem token: %#v", token))
+		token, err := reader.XNext()
 
-		if &token == nil || token == "" || err != nil {
+		if token == nil || *token == "" || err != nil {
 			if err != nil {
 				//log.Warn(err.Error())
 			}
+			log.Debug("Breaking 📰 ...")
 			break
 		}
 
-		log.Debug("     current : [" + token + "]")
-		letter := token[0]
-
-		log.Debug(util.Xs("on (++) counter: %d", reader.counter))
-		if letter == '(' {
-			reader.counter++
-		}
-
-		switch letter {
+		switch (*token)[0] {
 		case ')':
-			log.Debug(util.Xs("on (--) counter: %d", reader.counter))
-			if letter == '(' {
-				reader.counter--
-			}
-			break
+			reader.counter--
+			//waitForEnterKeywaitForEnterKey("list-retr :")
+			log.Debug(util.Xs("##=============   Ret list.  id: %v, %#v", id, "list"))
+			return list
 		default:
-			element := reader.readForm()
-			if element != nil {
-				log.Debug(util.Xs("ELEMENT: %-v", element))
-				list.v = append(list.v, element)
-			}
-		}
-	}
-
-	if reader.counter != 0 {
-		return MalObject{v: "unbalanced"}
-	}
-	log.Debug("LIST:" + list.PrintStr())
-	return list
-}
-
-func (reader *Reader) readForm() MalType {
-	token, err := reader.peek()
-	log.Debug(util.Xs("--------------- form token: %#v", token))
-
-	if ")" != token {
-		if &token == nil || token == "" || err != nil {
-			if err != nil {
-				//log.Warn(err.Error())
-			}
-			return nil
-		} else {
-			switch token[0] {
-			case '(':
-				reader.counter++
-				list := reader.readList()
-				log.Debug(util.Xs("LIST: %v", list))
-				return list
-			default:
-				atom := reader.readAtom()
-				log.Debug(util.Xs("ATOM: %v", atom))
-				return atom
-			}
+			form := reader.xReadForm()
+			list.v = append(list.v, form)
+			//waitForEnterKey("list-form :")
 		}
 	}
 	return nil
 }
 
-func CreateReader(tokenStr string) *Reader {
-	reader := &Reader{}
-	//printFnStart("read_str ", &reader, tokenStr)
-	tokens := Tokenize(tokenStr)
-	//fmt.Println("===== tokens:", tokens)
-	//fmt.Println("===== tokenx:", util.ArrayToString(tokens, "\""))
-	reader.tokens = tokens
-	reader.position = 0
-	reader.counter = 0
+func (reader *XReader) xReadForm() MalType {
+	token, _ := reader.XPeek()
+	switch (*token)[0] {
+	case '(':
+		reader.counter++
+		list := reader.xReadList(token)
+		//log.Debug(util.Xs("##-------------Return list : %#v", *&list))
+		return list
+	case ')':
+		reader.counter--
+		log.Debug("It's the end of a list.")
+		return nil
+	default:
+		atom := reader.xReadAtom()
+		log.Debug("It's an atom.")
+		return atom
+	}
+}
+
+func XTokenize(str string) []*string {
+	matches := XTokenRegex.FindAllStringSubmatch(str, -1)
+	tokens := make([]*string, 0)
+	for _, g := range matches {
+		tokens = append(tokens, &g[1])
+	}
+	return tokens
+}
+
+func XCreateReader(str string) *XReader {
+	tokens := XTokenize(str)
+	log.Debug(util.Xs("tokens: %s\n", util.PointersToString(tokens, "'")))
+	reader := &XReader{tokens: tokens}
 	return reader
 }
 
-func ReadStr(str string) MalType {
-	reader := CreateReader(str)
-	form := reader.readForm()
-	return form
+func XReadStr(str string) MalType {
+	if &str != nil {
+		reader := XCreateReader(str)
+		form := reader.xReadForm()
+
+		if reader.counter != 0 {
+			return MalObject{v: "unbalanced"}
+		}
+		return form
+	} else {
+		return nil
+	}
 }
 
-func TestReader() {
-	//fmt.Printf("Position: %d, Token: %+v\n", currentPosition, currentToken)
+func TestXReader() {
 	println("Testing reader ...")
-	println("---------------------------------------------------------------")
+	println("------------------------------------------------------------------------------------------------------------------------------")
 
-	//fmt.Println("regexpStr:", regexpStr)
+	//str = "(a b)"
+	str := "(()())"
+	reader := XCreateReader(str)
+	form := reader.xReadForm()
+	fmt.Printf("form: %#v\n", form)
 
-	str := "(let [y (some 3.4)\n  (print (+ 3 4))])\n(println \"Hello!\")"
-	str = "(def x (inc 1))"
-	str = "(inc 1)"
-	str = "(4)"
-	fmt.Println("str: ", str)
-
-	reader := CreateReader(str)
-	form := reader.readForm()
-
-	fmt.Println("reader :", reader)
-	fmt.Println("form   :", form)
-
-	// for _, token := range tokens {
-	// 	fmt.Println("token: ", token)
-	// }
-	println("---------------------------------------------------------------")
+	println("------------------------------------------------------------------------------------------------------------------------------")
 
 }
