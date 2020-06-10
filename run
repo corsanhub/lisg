@@ -1,3 +1,5 @@
 #!/usr/bin/env bash
-echo "############################################"
-exec ./lisg $(dirname $0)/${STEP:-stepA_mal}.go "${@}"
+echo "############### L I S G #################"
+#exec $(dirname $0)/${STEP:-stepA_mal}.go "${@}"
+exec ./lisg ${STEP:-stepA_mal} "${@}"
+   

@@ -1,8 +1,12 @@
-compiled:
-	@echo "[Compiling] everything ..."
+step0_repl:
 	go build
+	cp lisg $@
 
-mal.bin: compiled
+step1_read_print:
+	go build
+	cp lisg $@
+
+mal.bin: step0_repl step1_read_print
 	@echo "[Copying] executable as mal.bin ..."
 	cp lisg $@
 
@@ -14,4 +18,6 @@ mal: compiled
 
 clean:
 	go clean
+	#rm -f mal.bin mal
 	rm -f mal.bin mal
+	rm -f lisg step0_repl step1_read_print
