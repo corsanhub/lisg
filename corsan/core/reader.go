@@ -1,10 +1,7 @@
 package core
 
 import (
-	"bufio"
 	"fmt"
-	"os"
-	"regexp"
 
 	"corsanhub.com/lisg/corsan/logging"
 	"corsanhub.com/lisg/corsan/util"
@@ -22,52 +19,9 @@ type Reader struct {
 	tokens   []*string
 }
 
-var XTokenRegexStr = "[\\s,]*(~@|[\\[\\]{}()'`~^@]|\"(?:\\\\.|[^\\\\\"])*\"?|;.*|[^\\s\\[\\]{}('\"`,;)]*)"
-var XTokenRegex = regexp.MustCompile(XTokenRegexStr)
-
-func (reader *Reader) next() (*string, error) {
-	reader.position++
-	if reader.position < len(reader.tokens) {
-		token := reader.tokens[reader.position]
-		log.Debug(util.Xs("##---------------- 🔜next: %#v, id: %v, position: %d", *token, token, reader.position))
-		return token, nil
-	} else {
-		fn := util.TraceStr(0)
-		errStr := util.Xs("Out of bounds error %d", reader.position)
-		err := NewError(fn, errStr)
-		return nil, err
-	}
-}
-
-func (reader *Reader) peek() (*string, error) {
-	if reader.position < len(reader.tokens) {
-		token := reader.tokens[reader.position]
-		log.Debug(util.Xs("##---------------- 🔷peek: %#v, id: %v, position: %d", *token, token, reader.position))
-		return token, nil
-	} else {
-		fn := util.TraceStr(0)
-		errStr := util.Xs("Out of bounds error %d", reader.position)
-		err := NewError(fn, errStr)
-		return nil, err
-	}
-}
-
-func waitForEnterKey(value string) {
-	fmt.Printf("%s<Enter>", value)
-	reader := bufio.NewReader(os.Stdin)
-	reader.ReadString('\n')
-}
-
-func (reader *Reader) readAtom() MalType {
-	token, _ := reader.peek()
-	atom := MalObject{v: *token, id: util.RandString(8)}
-	log.Debug(util.Xs("##-------------   New atom : %#v", atom))
-	return atom
-}
-
-func (reader *Reader) readList(id *string) MalType {
+func (reader *Reader) readList(id *string) (MalType, error) {
 	list := MalList{id: id}
-	log.Debug(util.Xs("##=============   New list.  id: %v, %#v", id, "list"))
+	log.Debug(util.Xs("##-------------   new list  id: %v, %#v", id, "list"))
 
 	for {
 		token, err := reader.next()
@@ -80,24 +34,68 @@ func (reader *Reader) readList(id *string) MalType {
 			break
 		}
 
-		switch (*token)[0] {
-		case ')':
+		switch *token {
+		case ")":
 			reader.counter--
 			//waitForEnterKeywaitForEnterKey("list-retr :")
-			log.Debug(util.Xs("##=============   Ret list.  id: %v, %#v", id, "list"))
-			return list
+			log.Debug(util.Xs("##-------------   ret list  id: %v, %#v", id, "list"))
+			return list, nil
 		default:
-			form := reader.readForm()
+			form, _ := reader.readForm()
 			list.v = append(list.v, form)
 			//waitForEnterKey("list-form :")
 		}
 	}
-	return nil
+
+	fn := util.TraceStr(0)
+	return nil, NewError(fn, "unbalanced")
 }
 
-func (reader *Reader) readVector(id *string) MalType {
+func (reader *Reader) readForm() (MalType, error) {
+	token, _ := reader.peek()
+	switch *token {
+	case "(":
+		reader.counter++
+		list, err := reader.readList(token)
+		//log.Debug(util.Xs("##-------------Return list : %#v", *&list))
+		return list, err
+	case "[":
+		reader.counter++
+		vector, err := reader.readVector(token)
+		//log.Debug(util.Xs("##-------------Return list : %#v", *&list))
+		return vector, err
+	case "{":
+		reader.counter++
+		rmap, err := reader.readMap(token)
+		//log.Debug(util.Xs("##-------------Return list : %#v", *&list))
+		return rmap, err
+	case ")":
+		reader.counter--
+		log.Debug("It's the end of a list.")
+		return nil, nil
+	case "]":
+		reader.counter--
+		log.Debug("It's the end of a vector.")
+		return nil, nil
+	case "}":
+		reader.counter--
+		log.Debug("It's the end of a map.")
+		return nil, nil
+	default:
+		atom, err := reader.readAtom()
+		log.Debug("It's an atom.")
+		if atom != nil {
+			return atom, err
+		} else {
+			fn := util.TraceStr(0)
+			return nil, NewError(fn, "Form is not consistent")
+		}
+	}
+}
+
+func (reader *Reader) readVector(id *string) (MalType, error) {
 	vector := MalVector{id: id}
-	log.Debug(util.Xs("##=============   New vect.  id: %v, %#v", id, "list"))
+	log.Debug(util.Xs("##----------   new vect  id: %v, %#v", id, "list"))
 
 	for {
 		token, err := reader.next()
@@ -110,56 +108,53 @@ func (reader *Reader) readVector(id *string) MalType {
 			break
 		}
 
-		switch (*token)[0] {
-		case ']':
+		switch *token {
+		case "]":
 			reader.counter--
 			//waitForEnterKeywaitForEnterKey("list-retr :")
-			log.Debug(util.Xs("##=============   Ret vect.  id: %v, %#v", id, "list"))
-			return vector
+			log.Debug(util.Xs("##----------   ret vect  id: %v, %#v", id, "list"))
+			return vector, nil
 		default:
-			form := reader.readForm()
+			form, _ := reader.readForm()
 			vector.v = append(vector.v, form)
 			//waitForEnterKey("list-form :")
 		}
 	}
-	return nil
+
+	fn := util.TraceStr(0)
+	return nil, NewError(fn, "Malformed list")
 }
 
-func (reader *Reader) readForm() MalType {
-	token, _ := reader.peek()
-	switch (*token)[0] {
-	case '(':
-		reader.counter++
-		list := reader.readList(token)
-		//log.Debug(util.Xs("##-------------Return list : %#v", *&list))
-		return list
-	case '[':
-		reader.counter++
-		list := reader.readVector(token)
-		//log.Debug(util.Xs("##-------------Return list : %#v", *&list))
-		return list
-	case ')':
-		reader.counter--
-		log.Debug("It's the end of a list.")
-		return nil
-	case ']':
-		reader.counter--
-		log.Debug("It's the end of a vector.")
-		return nil
-	default:
-		atom := reader.readAtom()
-		log.Debug("It's an atom.")
-		return atom
-	}
-}
+func (reader *Reader) readMap(id *string) (MalType, error) {
+	rmap := MalMap{id: id}
+	log.Debug(util.Xs("##--------------   new map  id: %v, %#v", id, "list"))
 
-func Tokenize(str string) []*string {
-	matches := XTokenRegex.FindAllStringSubmatch(str, -1)
-	tokens := make([]*string, 0)
-	for _, g := range matches {
-		tokens = append(tokens, &g[1])
+	for {
+		token, err := reader.next()
+
+		if token == nil || *token == "" || err != nil {
+			if err != nil {
+				//log.Warn(err.Error())
+			}
+			log.Debug("Breaking 📰 ...")
+			break
+		}
+
+		switch *token {
+		case "}":
+			reader.counter--
+			//waitForEnterKeywaitForEnterKey("list-retr :")
+			log.Debug(util.Xs("##--------------   ret map  id: %v, %#v", id, "list"))
+			return rmap, nil
+		default:
+			form, _ := reader.readForm()
+			rmap.v = append(rmap.v, form)
+			//waitForEnterKey("list-form :")
+		}
 	}
-	return tokens
+
+	fn := util.TraceStr(0)
+	return nil, NewError(fn, "Malformed vector")
 }
 
 func CreateReader(str string) *Reader {
@@ -172,7 +167,7 @@ func CreateReader(str string) *Reader {
 func ReadStr(str string) MalType {
 	if &str != nil {
 		reader := CreateReader(str)
-		form := reader.readForm()
+		form, _ := reader.readForm()
 
 		if reader.counter != 0 {
 			return MalObject{v: "unbalanced"}
@@ -190,7 +185,7 @@ func TestXReader() {
 	//str = "(a b)"
 	str := "(()())"
 	reader := CreateReader(str)
-	form := reader.readForm()
+	form, _ := reader.readForm()
 	fmt.Printf("form: %#v\n", form)
 
 	println("------------------------------------------------------------------------------------------------------------------------------")

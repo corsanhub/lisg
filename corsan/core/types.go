@@ -54,6 +54,12 @@ type MalVector struct {
 	id *string
 }
 
+type MalMap struct {
+	MalType
+	v  []MalType
+	id *string
+}
+
 func (err MalError) Error() string {
 	return fmt.Sprintf("MalError thrown in function {%s}: %s", err.f, err.e)
 }
@@ -75,7 +81,9 @@ func (mal MalFloat) PrintStr() string {
 }
 
 func (mal MalString) PrintStr() string {
-	return fmt.Sprintf("%+v", mal.v)
+	var buffer bytes.Buffer
+	buffer.WriteString(fmt.Sprintf("\"%+v\"", mal.v))
+	return buffer.String()
 }
 
 func (mal MalList) PrintStr() string {
@@ -103,5 +111,19 @@ func (mal MalVector) PrintStr() string {
 		buffer.WriteString(item.PrintStr() + suffix)
 	}
 	buffer.WriteString("]")
+	return buffer.String()
+}
+
+func (mal MalMap) PrintStr() string {
+	var buffer bytes.Buffer
+	buffer.WriteString("{")
+	for i, item := range mal.v {
+		suffix := " "
+		if i == (len(mal.v) - 1) {
+			suffix = ""
+		}
+		buffer.WriteString(item.PrintStr() + suffix)
+	}
+	buffer.WriteString("}")
 	return buffer.String()
 }
