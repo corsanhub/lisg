@@ -1,2 +1,3 @@
 # lisg
-Lisp for Go
+Lisp for Go (A 'mal' implementation)
+
