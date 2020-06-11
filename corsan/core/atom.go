@@ -33,6 +33,11 @@ func (reader *Reader) readAtom() (MalType, error) {
 		malStr := MalString{v: str}
 		log.Debug(util.Xs("##-------------- ret atom   id: %v, %#v", token, malStr))
 		return malStr, nil
+	} else if match, _ := regexp.MatchString(`^.*\\.*$`, *token); match {
+		str := strings.Replace(*token, `\\\\`, "\\", -1)
+		malStr := MalString{v: str}
+		log.Debug(util.Xs("##-------------- ret atom   id: %v, %#v", token, malStr))
+		return malStr, nil
 	} else if match, _ := regexp.MatchString(`^.*\s+.*$`, *token); match {
 		rchars := `\r\n\t\f\v `
 		for pos, char := range rchars {

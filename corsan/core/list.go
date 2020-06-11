@@ -33,9 +33,9 @@ func (reader *Reader) readList(id *string) (MalType, error) {
 		}
 	}
 
-	if list.t == BASIC_LIST {
-		return list, nil
-	}
+	// if list.t == SPECIAL_LIST {
+	// 	return list, nil
+	// }
 
 	fn := util.TraceStr(0)
 	return nil, NewError(fn, "unbalanced")

@@ -17,12 +17,13 @@ type Reader struct {
 	position int
 	counter  int
 	tokens   []*string
+	str      *string
 }
 
 func CreateReader(str string) *Reader {
 	tokens := Tokenize(str)
 	log.Debug(util.Xs("tokens: %s\n", util.PointersToString(tokens, "'")))
-	reader := &Reader{tokens: tokens}
+	reader := &Reader{tokens: tokens, str: &str}
 	return reader
 }
 
@@ -51,7 +52,8 @@ func TestXReader() {
 	// str = "'(1 2 3)"
 	// str = "~(1 2 3)"
 	// str = "@(a {:b 1})"
-	str = "`(1 ~a 3)"
+	// str = "`(1 ~a 3)"           //   :'(
+	str = "abc\"def"
 	reader := CreateReader(str)
 	form, _ := reader.readForm()
 	fmt.Printf("form: %#v\n", form)
