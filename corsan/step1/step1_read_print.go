@@ -67,14 +67,16 @@ func Step1ReadPrint() {
 			break
 		}
 
-		resultText := REP(text)
-		if resultText == "exit" {
-			fmt.Println("\n~~~~> Exiting REPL ...")
-			os.Exit(0)
-		} else if text == "\n" {
+		if text == "\n" {
 			fmt.Println("")
 		} else {
-			fmt.Printf("%-v\n", resultText)
+			resultText := REP(text)
+			if resultText == "exit" {
+				fmt.Println("\n~~~~> Exiting REPL ...")
+				os.Exit(0)
+			} else {
+				fmt.Printf("%-v\n", resultText)
+			}
 		}
 	}
 }

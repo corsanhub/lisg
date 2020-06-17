@@ -31,6 +31,7 @@ func ReadStr(str string) MalType {
 	if &str != nil {
 		reader := CreateReader(str)
 		form, _ := reader.readForm()
+		log.Debug(util.Xs("form type: %#v", GetType(form)))
 
 		if reader.counter != 0 {
 			return MalObject{v: "unbalanced"}

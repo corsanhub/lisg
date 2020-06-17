@@ -8,6 +8,7 @@ import (
 	"corsanhub.com/lisg/corsan/core"
 	"corsanhub.com/lisg/corsan/step0"
 	"corsanhub.com/lisg/corsan/step1"
+	"corsanhub.com/lisg/corsan/step2"
 )
 
 func main() {
@@ -30,6 +31,8 @@ func main() {
 		step0.Step0Repl()
 	} else if strings.HasPrefix(step, "step1") {
 		step1.Step1ReadPrint()
+	} else if strings.HasPrefix(step, "step2") {
+		step2.Step2Eval()
 	} else {
 		core.TestXReader()
 	}

@@ -9,9 +9,9 @@ import (
 
 var logFile = "module.log"
 
-// var GlobalLogLevel = DEBUG
+var GlobalLogLevel = DEBUG
 
-var GlobalLogLevel = INFO
+// var GlobalLogLevel = INFO
 
 var GlobalLogType = BOTH
 

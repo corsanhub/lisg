@@ -7,7 +7,8 @@ import (
 
 type MalType interface {
 	PrintStr() string
-	GetId()
+	Value() interface{}
+	Set(interface{})
 }
 
 type MalObject struct {
@@ -25,6 +26,11 @@ type MalError struct {
 type MalSymbol struct {
 	MalType
 	v string
+}
+
+type MalBoolean struct {
+	MalType
+	v bool
 }
 
 type MalInteger struct {
@@ -61,6 +67,11 @@ type MalMap struct {
 	id *string
 }
 
+func GetType(mal MalType) string {
+	mType := fmt.Sprintf("%T", mal)
+	return mType
+}
+
 func (err MalError) Error() string {
 	return fmt.Sprintf("MalError thrown in function {%s}: %s", err.f, err.e)
 }
@@ -70,6 +81,10 @@ func (mal MalObject) PrintStr() string {
 }
 
 func (mal MalSymbol) PrintStr() string {
+	return fmt.Sprintf("%+v", mal.v)
+}
+
+func (mal MalBoolean) PrintStr() string {
 	return fmt.Sprintf("%+v", mal.v)
 }
 
@@ -127,4 +142,76 @@ func (mal MalMap) PrintStr() string {
 	}
 	buffer.WriteString("}")
 	return buffer.String()
+}
+
+func (mal MalObject) Value() interface{} {
+	return mal.v
+}
+
+func (mal MalSymbol) Value() interface{} {
+	return mal.v
+}
+
+func (mal MalBoolean) Value() interface{} {
+	return mal.v
+}
+
+func (mal MalInteger) Value() interface{} {
+	return mal.v
+}
+
+func (mal MalFloat) Value() interface{} {
+	return mal.v
+}
+
+func (mal MalString) Value() interface{} {
+	return mal.v
+}
+
+func (mal MalList) Value() interface{} {
+	return mal.v
+}
+
+func (mal MalVector) Value() interface{} {
+	return mal.v
+}
+
+func (mal MalMap) Value() interface{} {
+	return mal.v
+}
+
+func (mal MalObject) Set(value interface{}) {
+	mal.v = value.(string)
+}
+
+func (mal MalSymbol) Set(value interface{}) {
+	mal.v = value.(string)
+}
+
+func (mal MalBoolean) Set(value interface{}) {
+	mal.v = value.(bool)
+}
+
+func (mal MalInteger) Set(value interface{}) {
+	mal.v = value.(int64)
+}
+
+func (mal MalFloat) Set(value interface{}) {
+	mal.v = value.(float64)
+}
+
+func (mal MalString) Set(value interface{}) {
+	mal.v = value.(string)
+}
+
+func (mal MalList) Set(value interface{}) {
+	mal.v = value.([]MalType)
+}
+
+func (mal MalVector) Set(value interface{}) {
+	mal.v = value.([]MalType)
+}
+
+func (mal MalMap) Set(value interface{}) {
+	mal.v = value.([]MalType)
 }

@@ -6,6 +6,10 @@ step1_read_print:
 	go build
 	cp lisg $@
 
+step2_eval:
+	go build
+	cp lisg $@
+
 mal.bin: step0_repl step1_read_print
 	@echo "[Copying] executable as mal.bin ..."
 	cp lisg $@
@@ -20,4 +24,4 @@ clean:
 	go clean
 	#rm -f mal.bin mal
 	rm -f mal.bin mal
-	rm -f lisg step0_repl step1_read_print
+	rm -f lisg step0_repl step1_read_print step2_eval
