@@ -45,6 +45,7 @@ type MalString struct {
 type MalList struct {
 	MalType
 	v  []MalType
+	t  string
 	id *string
 }
 
