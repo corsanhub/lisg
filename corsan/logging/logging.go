@@ -12,6 +12,7 @@ var logFile = "module.log"
 // var GlobalLogLevel = DEBUG
 
 var GlobalLogLevel = INFO
+
 var GlobalLogType = BOTH
 
 type Logging interface {
