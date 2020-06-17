@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 
 	"corsanhub.com/lisg/corsan/core"
@@ -40,10 +41,15 @@ func InitializeCloseHandler() {
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-c
-		fmt.Println("\n-- Exiting REPL ...")
+		fmt.Println("\n~~~~> Exiting REPL ...")
 		os.Exit(0)
 	}()
 }
+
+var (
+	historyFn = filepath.Join(os.TempDir(), "lish.repl")
+	names     = []string{"john", "james", "mary", "nancy"}
+)
 
 //Step1ReadPrint - Executes Step 1
 func Step1ReadPrint() {
@@ -63,33 +69,12 @@ func Step1ReadPrint() {
 
 		resultText := REP(text)
 		if resultText == "exit" {
-			fmt.Println("\n-- Exiting REPL ...")
+			fmt.Println("\n~~~~> Exiting REPL ...")
 			os.Exit(0)
-		} else {
-			fmt.Printf("%-v\n", resultText)
-		}
-	}
-}
-
-func xx() {
-	var text = ""
-	var err error
-	for {
-		rdr := bufio.NewReader(os.Stdin)
-		fmt.Print("user> ")
-		text, err = rdr.ReadString('\n')
-		// text, err = liner.Prompt("user> ")
-		if err != nil {
-			break
-		}
-
-		log.Debug(fmt.Sprintf("----- %#v", text))
-		if text == "" {
+		} else if text == "\n" {
 			fmt.Println("")
 		} else {
-			resultText := REP(text)
 			fmt.Printf("%-v\n", resultText)
 		}
 	}
-
 }
